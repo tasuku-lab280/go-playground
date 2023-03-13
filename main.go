@@ -1,15 +1,16 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-type Product struct {
+type Todo struct {
   gorm.Model
-  Code  string
-  Price uint
+  Title string
 }
 
 func main() {
@@ -19,8 +20,7 @@ func main() {
     panic("failed to connect database")
   }
 
-	db.AutoMigrate(&Product{})
-	db.Create(&Product{Code: "D42", Price: 100})
+	db.AutoMigrate(&Todo{})
 
 	r := gin.Default()
 	r.GET("/", func(c *gin.Context) {
@@ -28,5 +28,62 @@ func main() {
 			"message": "SUCCESS",
 		})
 	})
+
+	// TODOの一覧取得
+	r.GET("/todos", func(c *gin.Context) {
+		var todos []Todo
+		db.Find(&todos)
+		c.JSON(http.StatusOK, todos)
+	})
+
+	// TODOの取得
+	r.GET("/todos/:id", func(c *gin.Context) {
+		var todo Todo
+		if err := db.First(&todo, c.Param("id")).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Record not found!"})
+			return
+		}
+		c.JSON(http.StatusOK, todo)
+	})
+
+	// TODOの作成
+	r.POST("/todos", func(c *gin.Context) {
+		var input Todo
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		todo := Todo{Title: input.Title}
+		db.Create(&todo)
+		c.JSON(http.StatusOK, todo)
+	})
+
+	// TODOの更新
+	r.PUT("/todos/:id", func(c *gin.Context) {
+		var todo Todo
+		if err := db.First(&todo, c.Param("id")).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Record not found!"})
+			return
+		}
+		var input Todo
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		db.Model(&todo).Updates(input)
+		c.JSON(http.StatusOK, todo)
+	})
+
+	// TODOの削除
+	r.DELETE("/todos/:id", func(c *gin.Context) {
+		var todo Todo
+		if err := db.First(&todo, c.Param("id")).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Record not found!"})
+			return
+		}
+		db.Delete(&todo)
+		c.JSON(http.StatusOK, gin.H{"message": "Todo deleted successfully"})
+	})
+
 	r.Run()
 }
