@@ -5,14 +5,22 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tasuku-lab280/go-playground/internal/model"
+	"github.com/tasuku-lab280/go-playground/internal/repository"
+	"github.com/tasuku-lab280/go-playground/internal/usecase"
 	"gorm.io/gorm"
 )
 
 func NewTodoHandler(router *gin.Engine, db *gorm.DB) {
+	repo := repository.NewTodoRepository(db)
+	usecase := usecase.NewTodoUsecase(repo)
+
 	// TODOの一覧取得
 	router.GET("/todos", func(c *gin.Context) {
-		var todos []model.Todo
-		db.Find(&todos)
+		todos, err := usecase.GetAll()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusOK, todos)
 	})
 
