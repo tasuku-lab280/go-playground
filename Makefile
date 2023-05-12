@@ -9,3 +9,6 @@ stop:
 
 tidy:
 	docker-compose run --rm api go mod tidy
+
+mysql:
+	docker-compose exec db bash -c "mysql -u root -ppassword"
