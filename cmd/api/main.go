@@ -6,6 +6,6 @@ import (
 
 func main() {
 	infrastructure.NewEnv()
-	infrastructure.NewDB()
-	infrastructure.NewRouter()
+	db := infrastructure.NewDB()
+	infrastructure.NewRouter(db)
 }
